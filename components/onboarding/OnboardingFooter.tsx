@@ -12,10 +12,13 @@ type Props = {
   onNext: () => void;
   nextLabel: string;
   nextDisabled?: boolean;
+  /** Shows a spinner in place of the label — for a step whose "Continue" does async work
+   * (e.g. onboarding/api-key.tsx validating the key before it'll move on). */
+  nextLoading?: boolean;
 };
 
 /** The persistent back-text + full-width primary-CTA row at the bottom of every onboarding step. */
-export function OnboardingFooter({ onBack, backLabel = 'Back', onNext, nextLabel, nextDisabled }: Props) {
+export function OnboardingFooter({ onBack, backLabel = 'Back', onNext, nextLabel, nextDisabled, nextLoading }: Props) {
   const t = useAppTheme();
   return (
     <View style={styles.row}>
@@ -26,7 +29,7 @@ export function OnboardingFooter({ onBack, backLabel = 'Back', onNext, nextLabel
       ) : (
         <View style={styles.backButton} />
       )}
-      <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} style={styles.nextButton} />
+      <Button label={nextLabel} onPress={onNext} disabled={nextDisabled} loading={nextLoading} style={styles.nextButton} />
     </View>
   );
 }

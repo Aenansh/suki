@@ -10,20 +10,39 @@ import { OnboardingProgress } from '@/components/onboarding/OnboardingProgress';
 import { Button, FadeInUp, TextField } from '@/components/ui';
 import { fonts, iconStrokeWidth, radii, space } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { setApiKey } from '@/services/apiKey';
+import { setApiKey, validateApiKey } from '@/services/apiKey';
 
 const GET_KEY_URL = 'https://aistudio.google.com/apikey';
 
 export default function OnboardingApiKey() {
   const t = useAppTheme();
   const [keyDraft, setKeyDraft] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [invalidReason, setInvalidReason] = useState<string | null>(null);
 
+  function editKeyDraft(v: string) {
+    setKeyDraft(v);
+    if (invalidReason) setInvalidReason(null); // stale error shouldn't linger past an edit
+  }
+
+  // Blocking, unlike Settings' key update (which never blocks a save): a typo caught right now,
+  // during setup, is cheap to fix; leaving the field blank still skips through immediately —
+  // this only gates people who typed *something* that doesn't check out.
   const commitAndContinue = async () => {
     const trimmed = keyDraft.trim();
-    if (trimmed) {
-      await setApiKey(trimmed);
+    if (!trimmed) {
+      router.push('/onboarding/done');
+      return;
     }
-    router.push('/onboarding/done');
+    setChecking(true);
+    const result = await validateApiKey(trimmed);
+    setChecking(false);
+    if (result.valid) {
+      await setApiKey(trimmed);
+      router.push('/onboarding/done');
+    } else {
+      setInvalidReason(result.reason);
+    }
   };
 
   return (
@@ -42,12 +61,25 @@ export default function OnboardingApiKey() {
 
           <TextField
             value={keyDraft}
-            onChangeText={setKeyDraft}
+            onChangeText={editKeyDraft}
             placeholder="Paste your key here"
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
+            editable={!checking}
           />
+
+          {invalidReason && (
+            <View style={[styles.errorNotice, { backgroundColor: t.accentBg }]}>
+              <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={t.accentInk} strokeWidth={iconStrokeWidth} strokeLinecap="round" strokeLinejoin="round" style={styles.skipIcon}>
+                <Path d="M12 11v5M12 7.6v.4" />
+                <Path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </Svg>
+              <Text style={[styles.skipText, { color: t.accentInk }]}>
+                {invalidReason} — fix it above, or clear the field to skip and add a key later in Settings.
+              </Text>
+            </View>
+          )}
 
           <View style={styles.lockRow}>
             <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={t.sageInk2} strokeWidth={iconStrokeWidth} strokeLinecap="round" strokeLinejoin="round">
@@ -79,7 +111,12 @@ export default function OnboardingApiKey() {
         </FadeInUp>
       </ScrollView>
 
-      <OnboardingFooter nextLabel="Continue" onNext={commitAndContinue} onBack={() => router.back()} />
+      <OnboardingFooter
+        nextLabel="Continue"
+        onNext={commitAndContinue}
+        onBack={() => router.back()}
+        nextLoading={checking}
+      />
     </SafeAreaView>
   );
 }
@@ -146,6 +183,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 10,
     marginTop: 14,
+    padding: 16,
+    borderRadius: radii.lg,
+  },
+  errorNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 10,
     padding: 16,
     borderRadius: radii.lg,
   },
