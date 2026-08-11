@@ -48,9 +48,11 @@ export default function Home() {
     <SafeAreaView style={[styles.screen, { backgroundColor: t.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerText}>
             <Text style={[styles.dateLabel, { color: t.faint }]}>{dateLabel.toUpperCase()}</Text>
-            <Text style={[styles.greeting, { color: t.text }]}>{greeting}</Text>
+            <Text style={[styles.greeting, { color: t.text }]} numberOfLines={1} adjustsFontSizeToFit>
+              {greeting}
+            </Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable
@@ -168,7 +170,7 @@ export default function Home() {
 
       {/* Always visible, even over limit — logging is never blocked (UX rule #1). */}
       <View style={[styles.logButtonWrap, { backgroundColor: t.bg }]}>
-        <Button label="Log sugar" onPress={() => router.push('/log')} fullWidth style={styles.logButton} />
+        <Button label="+ Log sugar" onPress={() => router.push('/log')} fullWidth style={styles.logButton} />
       </View>
     </SafeAreaView>
   );
@@ -189,6 +191,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     marginBottom: 16,
+  },
+  headerText: {
+    flex: 1,
+    minWidth: 0,
   },
   dateLabel: {
     fontFamily: fonts.body,
@@ -346,6 +352,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[6],
     paddingTop: 14,
     paddingBottom: 30,
+    opacity: 0.5,
   },
   logButton: {
     shadowColor: '#2e2b25',
