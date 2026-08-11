@@ -15,6 +15,7 @@ import { clearApiKey, getApiKey, maskApiKey, setApiKey, validateApiKey } from '@
 import { useFrequentPicksStore } from '@/stores/frequentPicksStore';
 import { useLogStore } from '@/stores/logStore';
 import { useStreakStore } from '@/stores/streakStore';
+import { useToastStore } from '@/stores/toastStore';
 import { useUserStore } from '@/stores/userStore';
 import { getTodayDateString } from '@/utils/date';
 
@@ -30,6 +31,7 @@ export default function Settings() {
   const loadToday = useLogStore((s) => s.loadToday);
   const loadStreak = useStreakStore((s) => s.loadStreak);
   const loadPicks = useFrequentPicksStore((s) => s.loadPicks);
+  const showToast = useToastStore((s) => s.show);
 
   const [editingLimit, setEditingLimit] = useState(false);
   const [limitDraft, setLimitDraft] = useState(Math.round(dailyLimitG));
@@ -74,13 +76,19 @@ export default function Settings() {
     // grams entry is always the fallback), it just surfaces what Suki found.
     const result = await validateApiKey(trimmed);
     setCheckingKey(false);
-    if (!result.valid) setKeyWarning(`${result.reason} — saved anyway, you can update it any time.`);
 
     await setApiKey(trimmed);
     setHasKey(true);
     setMaskedKey(maskApiKey(trimmed));
     setKeyDraft('');
     setEditingKey(false);
+
+    if (result.valid) {
+      showToast('API key saved — smart logging is ready.', 'success');
+    } else {
+      setKeyWarning(`${result.reason} — saved anyway, you can update it any time.`);
+      showToast(`Saved, but couldn't verify it: ${result.reason.toLowerCase()}.`, 'warning');
+    }
   }
 
   async function removeKey() {
@@ -90,6 +98,7 @@ export default function Settings() {
     setKeyDraft('');
     setKeyWarning('');
     setEditingKey(false);
+    showToast('API key removed — log manually until you add a new one.', 'warning');
   }
 
   function confirmClearToday() {

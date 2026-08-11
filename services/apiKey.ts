@@ -20,15 +20,6 @@ export function maskApiKey(key: string): string {
 export async function validateApiKey(apiKey: string): Promise<ApiKeyValidation> {
   // Gemini keys are 39 chars, start with "AIza", and are alphanumeric + "-" + "_"
   const key = apiKey.trim();
-
-  if (key.length !== 39) {
-    return { valid: false, reason: 'Invalid key length' };
-  }
-
-  if (!/^[A-Za-z0-9_-]+$/.test(key)) {
-    return { valid: false, reason: 'Invalid API key format' };
-  }
-
   try {
     // Real Gemini REST API: generativelanguage.googleapis.com, key as a query param (not a
     // Bearer header — that's how Google's Generative Language API authenticates).

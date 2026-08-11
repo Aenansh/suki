@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 
+import { Toast } from '@/components/ui';
 import { fontAssets } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMidnightCheck } from '@/hooks/useMidnightCheck';
@@ -48,6 +49,7 @@ export default function RootLayout() {
         <Stack.Screen name="recovery" options={{ presentation: 'modal' }} />
         <Stack.Screen name="redeem" options={{ presentation: 'modal' }} />
       </Stack>
+      <Toast />
     </>
   );
 }

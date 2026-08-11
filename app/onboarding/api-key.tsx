@@ -11,11 +11,13 @@ import { Button, FadeInUp, TextField } from '@/components/ui';
 import { fonts, iconStrokeWidth, radii, space } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { setApiKey, validateApiKey } from '@/services/apiKey';
+import { useToastStore } from '@/stores/toastStore';
 
 const GET_KEY_URL = 'https://aistudio.google.com/apikey';
 
 export default function OnboardingApiKey() {
   const t = useAppTheme();
+  const showToast = useToastStore((s) => s.show);
   const [keyDraft, setKeyDraft] = useState('');
   const [checking, setChecking] = useState(false);
   const [invalidReason, setInvalidReason] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export default function OnboardingApiKey() {
     setChecking(false);
     if (result.valid) {
       await setApiKey(trimmed);
+      showToast('Key saved — smart logging is unlocked.', 'success');
       router.push('/onboarding/done');
     } else {
       setInvalidReason(result.reason);
