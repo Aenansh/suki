@@ -8,6 +8,8 @@ import { SukiBunny } from '@/components/mascot/SukiBunny';
 import { Button, Stepper, TextField } from '@/components/ui';
 import { QUANTITY_CHIPS } from '@/constants/quantityChips';
 import { fonts, iconStrokeWidth, radii, space } from '@/constants/theme';
+import type { Entry } from '@/db/types';
+import { getEntryById } from '@/db/queries/entries';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { estimateSugar } from '@/services/gemini';
 import { getApiKey } from '@/services/apiKey';
@@ -15,7 +17,8 @@ import { useFrequentPicksStore } from '@/stores/frequentPicksStore';
 import { useLogStore } from '@/stores/logStore';
 import { canEditEntry } from '@/utils/entryEditWindow';
 
-type Step = 'pick' | 'qty' | 'busy' | 'confirm' | 'manual' | 'locked';
+type Step = 'pick' | 'qty' | 'busy' | 'confirm' | 'manual' | 'locked' | 'resolving';
+type EditLockReason = 'redeemed' | 'expired' | 'missing' | null;
 
 export default function Log() {
   const t = useAppTheme();
@@ -27,29 +30,18 @@ export default function Log() {
   const editEntryInStore = useLogStore((s) => s.editEntry);
   const deleteEntry = useLogStore((s) => s.deleteEntry);
 
-  // Edit mode: opened from tapping a today's-log row (components/home/EntryRow.tsx). Resolved
-  // once at mount — today's entries don't move out from under an open edit sheet.
-  const [editingEntry] = useState(() =>
-    params.editId ? (useLogStore.getState().todayEntries.find((e) => e.id === params.editId) ?? null) : null
-  );
   const isEditRoute = !!params.editId;
-  const editLockReason: 'redeemed' | 'expired' | 'missing' | null = !isEditRoute
-    ? null
-    : !editingEntry
-      ? 'missing'
-      : editingEntry.source === 'redeemed'
-        ? 'redeemed' // already spent — rewriting it after the fact would let SP be gamed
-        : !canEditEntry(editingEntry)
-          ? 'expired'
-          : null;
 
-  // Editing always re-asks the quantity and re-runs the same Gemini estimate a fresh log would
-  // get — never a bare manual-grams box, so a correction is exactly as informed as the original.
-  const [step, setStep] = useState<Step>(() => (isEditRoute ? (editLockReason ? 'locked' : 'qty') : 'pick'));
+  // Edit mode: opened from tapping a log row — today's (components/home/EntryRow.tsx) *or* a
+  // past day's (app/day/[date].tsx). Looked up straight from the DB (db/queries/entries.ts),
+  // never from a store's in-memory list, since those only ever hold *today's* entries.
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [editLockReason, setEditLockReason] = useState<EditLockReason>(null);
+  const [step, setStep] = useState<Step>(() => (isEditRoute ? 'resolving' : 'pick'));
   const [hasKey, setHasKey] = useState<boolean | null>(null);
-  const [foodName, setFoodName] = useState(editingEntry?.foodName ?? '');
-  const [quantity, setQuantity] = useState(editingEntry?.quantityDescription ?? '');
-  const [grams, setGrams] = useState(editingEntry?.sugarG ?? 10);
+  const [foodName, setFoodName] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [grams, setGrams] = useState(10);
   const [note, setNote] = useState('');
   const [manualReason, setManualReason] = useState('');
 
@@ -57,6 +49,31 @@ export default function Log() {
     loadPicks();
     getApiKey().then((k) => setHasKey(!!k));
   }, [loadPicks]);
+
+  useEffect(() => {
+    if (!params.editId) return;
+    let cancelled = false;
+    getEntryById(params.editId).then((entry) => {
+      if (cancelled) return;
+      setEditingEntry(entry);
+      // Editing always re-asks the quantity and re-runs the same Gemini estimate a fresh log
+      // would get — never a bare manual-grams box, so a correction is exactly as informed as
+      // the original.
+      const reason: EditLockReason = !entry ? 'missing' : entry.source === 'redeemed' ? 'redeemed' : !canEditEntry(entry) ? 'expired' : null;
+      setEditLockReason(reason);
+      if (reason) {
+        setStep('locked');
+      } else if (entry) {
+        setFoodName(entry.foodName ?? '');
+        setQuantity(entry.quantityDescription ?? '');
+        setGrams(entry.sugarG);
+        setStep('qty');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [params.editId]);
 
   const query = foodName.toLowerCase().trim();
   const suggestions = query.length < 2 ? [] : picks.filter((p) => p.foodName.toLowerCase().includes(query)).slice(0, 4);
@@ -240,6 +257,12 @@ export default function Log() {
                 <Text style={{ color: t.accentInk, fontSize: 14 }}>Delete entry</Text>
               </Pressable>
             )}
+          </View>
+        )}
+
+        {step === 'resolving' && (
+          <View style={styles.busyWrap}>
+            <SukiBunny mood="happy" size={72} />
           </View>
         )}
 

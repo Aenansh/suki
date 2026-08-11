@@ -14,10 +14,14 @@ const CIRCUMFERENCE = 2 * Math.PI * R;
 type Props = {
   sugar: number;
   limit: number;
+  /** Sub-label under the gram count — "today" on Home, something past-tense on a day-detail view
+   * (app/day/[date].tsx). Defaults to "today" so Home's existing usage is unaffected. */
+  label?: string;
 };
 
-/** The home dashboard's sugar progress ring — matches Suki.dc.html's ringDash/ringColor logic. */
-export function SugarRing({ sugar, limit }: Props) {
+/** The home dashboard's sugar progress ring — matches Suki.dc.html's ringDash/ringColor logic.
+ * Reused on app/day/[date].tsx for a past day's total too (via the `label` prop). */
+export function SugarRing({ sugar, limit, label = 'today' }: Props) {
   const t = useAppTheme();
   const { pct, ringColor, mascotMood } = useSugarStatus(sugar, limit);
   const dash = pct * CIRCUMFERENCE;
@@ -44,7 +48,7 @@ export function SugarRing({ sugar, limit }: Props) {
           {Math.round(sugar)}
           <Text style={styles.sugarUnit}>g</Text>
         </Text>
-        <Text style={[styles.sub, { color: t.muted }]}>of {Math.round(limit)}g today</Text>
+        <Text style={[styles.sub, { color: t.muted }]}>of {Math.round(limit)}g {label}</Text>
       </View>
       <View style={styles.mascot}>
         <SukiBunny mood={mascotMood} size={74} />

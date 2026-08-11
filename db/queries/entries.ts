@@ -69,6 +69,15 @@ export async function addEntry(date: string, input: EntryInput): Promise<Entry> 
   return entry;
 }
 
+/** Looks up a single entry regardless of date — needed because edit mode (app/log.tsx) can be
+ * opened from any day's list (components/home/EntryRow.tsx on Home *and* a past day's detail
+ * view, app/day/[date].tsx), not just today's in-memory store data. */
+export async function getEntryById(id: string): Promise<Entry | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<EntryDbRow>('SELECT * FROM entry WHERE id = ?', id);
+  return row ? mapRow(row) : null;
+}
+
 export async function deleteEntry(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM entry WHERE id = ?', id);

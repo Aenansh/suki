@@ -1,5 +1,6 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fonts, radii, space } from '@/constants/theme';
@@ -14,14 +15,18 @@ const DAY_NAMES = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 type CellStatus = 'under' | 'over' | 'missed' | 'future' | 'blank';
 
+function openDay(date: string) {
+  router.push({ pathname: '/day/[date]', params: { date } });
+}
+
 export default function History() {
   const t = useAppTheme();
   const dailyLimitG = useUserStore((s) => s.dailyLimitG);
   const streakDays = useStreakStore((s) => s.currentStreak);
 
-  const [calendar, setCalendar] = useState<{ n: number | ''; status: CellStatus }[]>([]);
+  const [calendar, setCalendar] = useState<{ n: number | ''; date: string; status: CellStatus }[]>([]);
   const [summary, setSummary] = useState('');
-  const [bars, setBars] = useState<{ label: string; grams: number; over: boolean; heightPct: number }[]>([]);
+  const [bars, setBars] = useState<{ date: string; label: string; grams: number; over: boolean; heightPct: number }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -39,24 +44,28 @@ export default function History() {
       // Leading blanks so day 1 lands under the correct weekday (Monday-first grid).
       const firstWeekday = new Date(year, month, 1).getDay(); // 0=Sun
       const leadingBlanks = firstWeekday === 0 ? 6 : firstWeekday - 1;
-      const cells: { n: number | ''; status: CellStatus }[] = Array.from({ length: leadingBlanks }, () => ({ n: '', status: 'blank' }));
+      const cells: { n: number | ''; date: string; status: CellStatus }[] = Array.from({ length: leadingBlanks }, () => ({
+        n: '',
+        date: '',
+        status: 'blank',
+      }));
 
       let daysTracked = 0;
       let daysUnder = 0;
       for (let d = 1; d <= daysInMonth; d++) {
         const date = toDateString(new Date(year, month, d));
         if (date > today) {
-          cells.push({ n: d, status: 'future' });
+          cells.push({ n: d, date, status: 'future' });
           continue;
         }
         const total = totalsByDate.get(date);
         if (total === undefined) {
-          cells.push({ n: d, status: 'missed' });
+          cells.push({ n: d, date, status: 'missed' });
         } else {
           daysTracked += 1;
           const under = total <= dailyLimitG;
           if (under) daysUnder += 1;
-          cells.push({ n: d, status: under ? 'under' : 'over' });
+          cells.push({ n: d, date, status: under ? 'under' : 'over' });
         }
       }
       setCalendar(cells);
@@ -75,6 +84,7 @@ export default function History() {
         const date = addDays(today, -i);
         const grams = Math.round(weekTotals.get(date) ?? 0);
         barList.push({
+          date,
           label: new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'narrow' }),
           grams,
           over: grams > dailyLimitG,
@@ -92,6 +102,9 @@ export default function History() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: t.text }]}>{new Date().toLocaleDateString(undefined, { month: 'long' })}</Text>
         <Text style={[styles.summary, { color: t.muted }]}>{summary}</Text>
+        <Text style={[styles.disclaimer, { color: t.faint }]}>
+          Tap any logged day below to view or edit what you had — entries stay editable for 48 hours.
+        </Text>
 
         <View style={[styles.calendarCard, { backgroundColor: t.surface }]}>
           <View style={styles.dayNamesRow}>
@@ -106,10 +119,16 @@ export default function History() {
               const bg = c.status === 'under' ? t.sageBg : c.status === 'over' ? t.accentBg : 'transparent';
               const bd = c.status === 'under' ? t.sage : c.status === 'over' ? t.accent : t.line;
               const ink = c.status === 'future' || c.status === 'blank' ? t.faint : t.text;
+              const tappable = c.status !== 'blank' && c.status !== 'future';
               return (
-                <View key={i} style={[styles.cell, { backgroundColor: bg, borderColor: c.status === 'blank' ? 'transparent' : bd }]}>
+                <Pressable
+                  key={i}
+                  disabled={!tappable}
+                  onPress={() => tappable && openDay(c.date)}
+                  style={[styles.cell, { backgroundColor: bg, borderColor: c.status === 'blank' ? 'transparent' : bd }]}
+                >
                   <Text style={{ color: ink, fontSize: 11.5 }}>{c.n}</Text>
-                </View>
+                </Pressable>
               );
             })}
           </View>
@@ -135,7 +154,7 @@ export default function History() {
           <View style={styles.barsArea}>
             <View style={[styles.budgetLine, { bottom: `${budgetLinePct}%`, borderColor: t.accent }]} />
             {bars.map((b, i) => (
-              <View key={i} style={styles.barCol}>
+              <Pressable key={i} onPress={() => openDay(b.date)} style={styles.barCol}>
                 <Text style={[styles.barValue, { color: t.muted }]}>{b.grams}g</Text>
                 <View style={styles.barTrack}>
                   <View
@@ -146,7 +165,7 @@ export default function History() {
                   />
                 </View>
                 <Text style={[styles.barLabel, { color: t.faint }]}>{b.label}</Text>
-              </View>
+              </Pressable>
             ))}
           </View>
           <Text style={[styles.barsFooter, { color: t.muted }]}>Dashed line at your {Math.round(dailyLimitG)}g budget</Text>
@@ -174,6 +193,11 @@ const styles = StyleSheet.create({
   },
   summary: {
     fontSize: 13,
+    marginBottom: 6,
+  },
+  disclaimer: {
+    fontSize: 11.5,
+    lineHeight: 16,
     marginBottom: 16,
   },
   calendarCard: {
