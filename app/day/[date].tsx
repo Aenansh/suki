@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -66,14 +66,6 @@ export default function DayDetail() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: t.bg }]} edges={['top']}>
       <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={[styles.iconBtn, { borderColor: t.line }]}
-        >
-          <ArrowLeft size={17} color={t.text} strokeWidth={iconStrokeWidth} />
-        </Pressable>
 
         <View style={styles.dateNav}>
           <Pressable
@@ -98,7 +90,6 @@ export default function DayDetail() {
           </Pressable>
         </View>
 
-        <View style={styles.iconBtn}  />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -165,20 +156,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[6],
     paddingBottom: 8,
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   dateNav: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
+    paddingVertical: 8,
   },
   dateNavBtn: {
     padding: 10,

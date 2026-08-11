@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Moon, Settings as SettingsIcon, Sun } from 'lucide-react-native';
+import { Candy, Moon, Settings as SettingsIcon, Sun } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -170,7 +170,13 @@ export default function Home() {
 
       {/* Always visible, even over limit — logging is never blocked (UX rule #1). */}
       <View style={[styles.logButtonWrap, { backgroundColor: t.bg }]}>
-        <Button label="+ Log sugar" onPress={() => router.push('/log')} fullWidth style={styles.logButton} />
+        <Button
+          label="Log sugar"
+          icon={<Candy size={20} color="#fff" strokeWidth={iconStrokeWidth} />}
+          onPress={() => router.push('/log')}
+          fullWidth
+          style={styles.logButton}
+        />
       </View>
     </SafeAreaView>
   );
@@ -352,7 +358,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[6],
     paddingTop: 14,
     paddingBottom: 30,
-    opacity: 0.5,
   },
   logButton: {
     shadowColor: '#2e2b25',
